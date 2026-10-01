@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: swiftvpn-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0
+      - key: ADMIN_SECRET
+        value: swiftvpn-admin-secret-2026
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
