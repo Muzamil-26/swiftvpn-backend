@@ -1,14 +1,12 @@
 """
-SwiftVPN Local Python Test Server
+SwiftVPN Local Python Test Server v2.5
 Zero external dependencies - runs directly on Python 3.x
-Serves the exact same API endpoints as the Node.js Render backend:
+Serves the exact same verified servers and endpoints as the Node.js Render backend:
   - GET  /health
   - GET  /api/health
   - GET  /api/ip
   - GET  /api/servers
   - POST /api/license/verify
-  - POST /api/license/generate
-  - GET  /
 """
 
 import http.server
@@ -16,9 +14,101 @@ import socketserver
 import json
 import time
 import urllib.parse
-import uuid
 
 PORT = 3000
+
+VERIFIED_SERVERS = [
+    {
+        "id": "us-newyork-live",
+        "name": "United States (New York)",
+        "country": "US",
+        "city": "New York / NJ",
+        "flag": "🇺🇸",
+        "host": "198.199.86.11",
+        "port": 3128,
+        "protocol": "http",
+        "free": True,
+        "category": "speed",
+        "pingMs": 42,
+        "loadPercent": 34,
+        "description": "High-speed US East verified proxy node"
+    },
+    {
+        "id": "in-bengaluru-live",
+        "name": "India (Bengaluru Fast)",
+        "country": "IN",
+        "city": "Bengaluru Tech Hub",
+        "flag": "🇮🇳",
+        "host": "139.59.1.14",
+        "port": 8080,
+        "protocol": "http",
+        "free": True,
+        "category": "speed",
+        "pingMs": 25,
+        "loadPercent": 38,
+        "description": "Low-latency domestic India route"
+    },
+    {
+        "id": "tw-taipei-live",
+        "name": "Taiwan (Asia East)",
+        "country": "TW",
+        "city": "Taipei",
+        "flag": "🇹🇼",
+        "host": "122.116.125.115",
+        "port": 8888,
+        "protocol": "http",
+        "free": True,
+        "category": "standard",
+        "pingMs": 52,
+        "loadPercent": 41,
+        "description": "Fast East Asia transit node"
+    },
+    {
+        "id": "jp-tokyo-live",
+        "name": "👑 Japan (Tokyo VIP Ultra)",
+        "country": "JP",
+        "city": "Tokyo Gaming Center",
+        "flag": "🇯🇵",
+        "host": "54.238.38.227",
+        "port": 8080,
+        "protocol": "http",
+        "free": False,
+        "category": "gaming",
+        "pingMs": 38,
+        "loadPercent": 20,
+        "description": "Ultra low-ping VIP Gaming node in Tokyo"
+    },
+    {
+        "id": "in-mumbai-live",
+        "name": "👑 India (Mumbai VIP Turbo)",
+        "country": "IN",
+        "city": "Mumbai Gigabit",
+        "flag": "🇮🇳",
+        "host": "45.194.41.141",
+        "port": 8080,
+        "protocol": "http",
+        "free": False,
+        "category": "streaming",
+        "pingMs": 22,
+        "loadPercent": 22,
+        "description": "VIP Streaming optimized Mumbai tunnel"
+    },
+    {
+        "id": "ch-europe-live",
+        "name": "👑 Switzerland (Zurich VIP Privacy)",
+        "country": "CH",
+        "city": "Zurich Offshore",
+        "flag": "🇨🇭",
+        "host": "185.195.71.218",
+        "port": 18080,
+        "protocol": "http",
+        "free": False,
+        "category": "privacy",
+        "pingMs": 48,
+        "loadPercent": 18,
+        "description": "Zero-log Swiss privacy node"
+    }
+]
 
 LICENSE_STORE = {
     "SWIFT-VIP-2026-PRO": {
@@ -69,8 +159,8 @@ class SwiftVPNHandler(http.server.BaseHTTPRequestHandler):
             data = {
                 "status": "healthy",
                 "uptime": int(time.time() - START_TIME),
-                "nodeRegion": "local-development",
-                "version": "2.0.0"
+                "verifiedServers": len(VERIFIED_SERVERS),
+                "version": "2.5.0"
             }
             self.wfile.write(json.dumps(data).encode('utf-8'))
 
@@ -82,110 +172,22 @@ class SwiftVPNHandler(http.server.BaseHTTPRequestHandler):
             client_ip = self.client_address[0]
             data = {
                 "ip": client_ip,
-                "country": "Local Dev / US",
+                "country": "Local / Test Gateway",
                 "isProxied": False,
                 "timestamp": int(time.time() * 1000)
             }
             self.wfile.write(json.dumps(data).encode('utf-8'))
 
-        elif path == '/api/servers':
+        elif path in ['/api/servers', '/api/servers/refresh']:
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self._send_cors()
             self.end_headers()
-            servers = [
-                {
-                    "id": "render-cloud-primary",
-                    "name": "⚡ Render Cloud Gateway",
-                    "country": "US",
-                    "city": "Oregon / Cloud",
-                    "flag": "🇺🇸",
-                    "host": "localhost",
-                    "port": 3000,
-                    "protocol": "http",
-                    "free": True,
-                    "category": "cloud",
-                    "pingMs": 14,
-                    "loadPercent": 25,
-                    "description": "Local test / Render cloud proxy node"
-                },
-                {
-                    "id": "us-east-free",
-                    "name": "United States (New York)",
-                    "country": "US",
-                    "city": "New York",
-                    "flag": "🇺🇸",
-                    "host": "198.199.86.11",
-                    "port": 3128,
-                    "protocol": "http",
-                    "free": True,
-                    "category": "standard",
-                    "pingMs": 35,
-                    "loadPercent": 42,
-                    "description": "Standard fast web proxy"
-                },
-                {
-                    "id": "de-frankfurt-free",
-                    "name": "Germany (Frankfurt)",
-                    "country": "DE",
-                    "city": "Frankfurt",
-                    "flag": "🇩🇪",
-                    "host": "159.65.120.106",
-                    "port": 8080,
-                    "protocol": "http",
-                    "free": True,
-                    "category": "standard",
-                    "pingMs": 42,
-                    "loadPercent": 38,
-                    "description": "European low-latency gateway"
-                },
-                {
-                    "id": "sg-singapore-free",
-                    "name": "Singapore #1 (Asia Central)",
-                    "country": "SG",
-                    "city": "Singapore",
-                    "flag": "🇸🇬",
-                    "host": "128.199.202.124",
-                    "port": 3128,
-                    "protocol": "http",
-                    "free": True,
-                    "category": "standard",
-                    "pingMs": 50,
-                    "loadPercent": 48,
-                    "description": "High-speed Asia Pacific hub"
-                },
-                {
-                    "id": "uk-london-vip",
-                    "name": "👑 UK (London VIP Turbo)",
-                    "country": "GB",
-                    "city": "London",
-                    "flag": "🇬🇧",
-                    "host": "178.62.83.189",
-                    "port": 3128,
-                    "protocol": "http",
-                    "free": False,
-                    "category": "streaming",
-                    "pingMs": 28,
-                    "loadPercent": 22,
-                    "description": "VIP Streaming & BBC iPlayer optimized"
-                },
-                {
-                    "id": "jp-tokyo-vip",
-                    "name": "👑 Japan (Tokyo VIP Ultra)",
-                    "country": "JP",
-                    "city": "Tokyo",
-                    "flag": "🇯🇵",
-                    "host": "139.180.208.152",
-                    "port": 8080,
-                    "protocol": "http",
-                    "free": False,
-                    "category": "gaming",
-                    "pingMs": 32,
-                    "loadPercent": 18,
-                    "description": "Low-ping VIP Gaming & Anime hub"
-                }
-            ]
-            self.wfile.write(json.dumps({"ok": True, "servers": servers}).encode('utf-8'))
+            self.wfile.write(json.dumps({
+                "ok": True,
+                "totalServers": len(VERIFIED_SERVERS),
+                "servers": VERIFIED_SERVERS
+            }).encode('utf-8'))
 
         else:
             self.send_response(200)
@@ -193,11 +195,10 @@ class SwiftVPNHandler(http.server.BaseHTTPRequestHandler):
             self._send_cors()
             self.end_headers()
             html = f"""
-            <html><body style="font-family:sans-serif;background:#0b1220;color:#e2e8f0;padding:40px;text-align:center;">
-              <h1 style="color:#10b981;">⚡ SwiftVPN Local Test Server</h1>
-              <p>Status: <b>ONLINE & RUNNING</b> on port {PORT}</p>
-              <p>Uptime: {int(time.time() - START_TIME)}s</p>
-              <p>Endpoints: <code>/api/health</code> | <code>/api/servers</code> | <code>/api/ip</code></p>
+            <html><body style="font-family:sans-serif;background:#060913;color:#e2e8f0;padding:40px;text-align:center;">
+              <h1 style="color:#10b981;">⚡ SwiftVPN Cloud Master (Local)</h1>
+              <p>Status: <b>ONLINE & VERIFIED</b> on port {PORT}</p>
+              <p>Active Verified Servers: {len(VERIFIED_SERVERS)} Online</p>
             </body></html>
             """
             self.wfile.write(html.encode('utf-8'))
@@ -248,11 +249,6 @@ class SwiftVPNHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
 
 if __name__ == '__main__':
-    print(f"==================================================")
-    print(f"⚡ SwiftVPN Python Local Backend running on port {PORT}")
-    print(f"👉 Health URL: http://localhost:{PORT}/api/health")
-    print(f"👉 Servers URL: http://localhost:{PORT}/api/servers")
-    print(f"👉 VIP Key: SWIFT-VIP-2026-PRO")
-    print(f"==================================================")
+    print(f"⚡ SwiftVPN Local Master running on port {PORT}")
     with socketserver.TCPServer(("", PORT), SwiftVPNHandler) as httpd:
         httpd.serve_forever()
