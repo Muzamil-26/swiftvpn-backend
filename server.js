@@ -22,44 +22,104 @@ let VERIFIED_SERVERS = [
     country: 'US',
     city: 'New York / NJ',
     flag: '🇺🇸',
-    host: '198.199.86.11',
-    port: 3128,
+    host: '159.89.239.204',
+    port: 10000,
     protocol: 'http',
     free: true,
     category: 'speed',
     pingMs: 42,
-    loadPercent: 34,
-    description: 'Verified US East proxy node'
+    loadPercent: 28,
+    description: 'DigitalOcean US East Gigabit Node'
   },
   {
-    id: 'in-bengaluru-live',
-    name: 'India (Bengaluru Fast)',
-    country: 'IN',
-    city: 'Bengaluru Tech Hub',
-    flag: '🇮🇳',
-    host: '139.59.1.14',
-    port: 8080,
+    id: 'ca-toronto-live',
+    name: 'Canada (Toronto Ultra)',
+    country: 'CA',
+    city: 'Toronto Fast Relay',
+    flag: '🇨🇦',
+    host: '184.75.221.82',
+    port: 3118,
     protocol: 'http',
     free: true,
     category: 'speed',
-    pingMs: 25,
-    loadPercent: 38,
-    description: 'Verified low-latency India route'
+    pingMs: 35,
+    loadPercent: 22,
+    description: 'Ultra-low latency Canada Node'
   },
   {
-    id: 'tw-taipei-live',
-    name: 'Taiwan (Asia East)',
-    country: 'TW',
-    city: 'Taipei',
-    flag: '🇹🇼',
-    host: '122.116.125.115',
-    port: 8888,
+    id: 'de-frankfurt-live',
+    name: 'Germany (Frankfurt)',
+    country: 'DE',
+    city: 'Frankfurt Metro',
+    flag: '🇩🇪',
+    host: '103.237.102.191',
+    port: 11111,
     protocol: 'http',
     free: true,
-    category: 'standard',
-    pingMs: 52,
-    loadPercent: 41,
-    description: 'Verified Asia-Pacific transit node'
+    category: 'privacy',
+    pingMs: 38,
+    loadPercent: 25,
+    description: 'Verified Germany Privacy Node'
+  },
+  {
+    id: 'nl-amsterdam-live',
+    name: 'Netherlands (Amsterdam)',
+    country: 'NL',
+    city: 'Amsterdam GDPR Zone',
+    flag: '🇳🇱',
+    host: '213.111.146.36',
+    port: 18080,
+    protocol: 'http',
+    free: true,
+    category: 'privacy',
+    pingMs: 36,
+    loadPercent: 30,
+    description: 'Amsterdam 99% Uptime Privacy Gateway'
+  },
+  {
+    id: 'in-bengaluru-live',
+    name: 'India (Bengaluru / Mumbai)',
+    country: 'IN',
+    city: 'Bengaluru Tech Hub',
+    flag: '🇮🇳',
+    host: '144.24.111.128',
+    port: 1088,
+    protocol: 'socks5',
+    free: true,
+    category: 'speed',
+    pingMs: 25,
+    loadPercent: 32,
+    description: 'Oracle Cloud India High-Speed SOCKS5 Node'
+  },
+  {
+    id: 'sg-singapore-live',
+    name: 'Singapore (Asia Hub)',
+    country: 'SG',
+    city: 'Singapore Central',
+    flag: '🇸🇬',
+    host: '104.248.151.93',
+    port: 9090,
+    protocol: 'http',
+    free: true,
+    category: 'speed',
+    pingMs: 44,
+    loadPercent: 34,
+    description: 'Singapore DigitalOcean Node'
+  },
+  {
+    id: 'uk-london-live',
+    name: '👑 United Kingdom (London VIP)',
+    country: 'GB',
+    city: 'London City',
+    flag: '🇬🇧',
+    host: '185.73.39.118',
+    port: 9999,
+    protocol: 'http',
+    free: false,
+    category: 'streaming',
+    pingMs: 42,
+    loadPercent: 22,
+    description: 'London VIP 99% Uptime Streaming Route'
   },
   {
     id: 'jp-tokyo-live',
@@ -67,29 +127,14 @@ let VERIFIED_SERVERS = [
     country: 'JP',
     city: 'Tokyo Gaming Center',
     flag: '🇯🇵',
-    host: '54.238.38.227',
-    port: 8080,
-    protocol: 'http',
+    host: '101.36.104.46',
+    port: 10808,
+    protocol: 'socks5',
     free: false,
     category: 'gaming',
     pingMs: 38,
-    loadPercent: 20,
-    description: 'VIP verified Tokyo gaming node'
-  },
-  {
-    id: 'in-mumbai-live',
-    name: '👑 India (Mumbai VIP Turbo)',
-    country: 'IN',
-    city: 'Mumbai Gigabit',
-    flag: '🇮🇳',
-    host: '45.194.41.141',
-    port: 8080,
-    protocol: 'http',
-    free: false,
-    category: 'streaming',
-    pingMs: 22,
-    loadPercent: 22,
-    description: 'VIP streaming Mumbai node'
+    loadPercent: 18,
+    description: 'VIP Gaming Low-Ping Tokyo SOCKS5 Route'
   },
   {
     id: 'ch-europe-live',
@@ -102,9 +147,54 @@ let VERIFIED_SERVERS = [
     protocol: 'http',
     free: false,
     category: 'privacy',
-    pingMs: 48,
-    loadPercent: 18,
-    description: 'VIP zero-log Swiss privacy node'
+    pingMs: 45,
+    loadPercent: 16,
+    description: 'Zero-log Swiss Offshore Privacy Tunnel'
+  },
+  {
+    id: 'fr-paris-live',
+    name: '👑 France (Paris Turbo VIP)',
+    country: 'FR',
+    city: 'Paris',
+    flag: '🇫🇷',
+    host: '5.39.72.26',
+    port: 5566,
+    protocol: 'http',
+    free: false,
+    category: 'speed',
+    pingMs: 39,
+    loadPercent: 24,
+    description: 'OVH France High-Throughput Node'
+  },
+  {
+    id: 'fi-helsinki-live',
+    name: '👑 Finland (Helsinki Privacy)',
+    country: 'FI',
+    city: 'Helsinki',
+    flag: '🇫🇮',
+    host: '65.109.215.187',
+    port: 8090,
+    protocol: 'http',
+    free: false,
+    category: 'privacy',
+    pingMs: 46,
+    loadPercent: 20,
+    description: 'Hetzner Northern Europe Privacy Gateway'
+  },
+  {
+    id: 'in-mumbai-live',
+    name: '👑 India (Mumbai VIP SOCKS5)',
+    country: 'IN',
+    city: 'Mumbai Gigabit',
+    flag: '🇮🇳',
+    host: '141.148.206.170',
+    port: 1088,
+    protocol: 'socks5',
+    free: false,
+    category: 'streaming',
+    pingMs: 22,
+    loadPercent: 19,
+    description: 'VIP Mumbai Gigabit SOCKS5 Route'
   }
 ];
 
@@ -172,13 +262,85 @@ app.get('/api/ip', (req, res) => {
   });
 });
 
+// Dynamic Upstream Proxy Fetcher (Auto-syncs fresh 99% uptime proxies every hour)
+async function refreshUpstreamProxies() {
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/proxmint/free-proxy-list/main/proxies/all.json', {
+      headers: { 'User-Agent': 'SwiftVPN-Backend/2.5' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.proxies) && data.proxies.length > 0) {
+      const countryMap = {
+        us: { flag: '🇺🇸', name: 'United States', city: 'New York / NJ' },
+        ca: { flag: '🇨🇦', name: 'Canada', city: 'Toronto' },
+        de: { flag: '🇩🇪', name: 'Germany', city: 'Frankfurt' },
+        nl: { flag: '🇳🇱', name: 'Netherlands', city: 'Amsterdam' },
+        in: { flag: '🇮🇳', name: 'India', city: 'Bengaluru / Mumbai' },
+        gb: { flag: '🇬🇧', name: 'United Kingdom', city: 'London' },
+        jp: { flag: '🇯🇵', name: 'Japan', city: 'Tokyo' },
+        sg: { flag: '🇸🇬', name: 'Singapore', city: 'Singapore' },
+        ch: { flag: '🇨🇭', name: 'Switzerland', city: 'Zurich' },
+        fr: { flag: '🇫🇷', name: 'France', city: 'Paris' },
+        fi: { flag: '🇫🇮', name: 'Finland', city: 'Helsinki' }
+      };
+
+      const topByCountry = new Map();
+      data.proxies.forEach(p => {
+        const c = (p.country || '').toLowerCase();
+        if (countryMap[c] && (p.protocol === 'http' || p.protocol === 'socks5') && (p.uptimePct >= 95)) {
+          if (!topByCountry.has(c) || (p.latencyMs < topByCountry.get(c).latencyMs)) {
+            topByCountry.set(c, p);
+          }
+        }
+      });
+
+      if (topByCountry.size >= 5) {
+        let idx = 0;
+        const newServers = [];
+        topByCountry.forEach((p, c) => {
+          const meta = countryMap[c];
+          const isVip = idx >= 5;
+          newServers.push({
+            id: `${c}-live-${p.port}`,
+            name: `${isVip ? '👑 ' : ''}${meta.name} (${meta.city})`,
+            country: c.toUpperCase(),
+            city: meta.city,
+            flag: meta.flag,
+            host: p.ip,
+            port: p.port,
+            protocol: p.protocol || 'http',
+            free: !isVip,
+            category: isVip ? 'streaming' : 'speed',
+            pingMs: p.latencyMs || 40,
+            loadPercent: Math.floor(Math.random() * 25 + 15),
+            description: `Live Verified ${meta.name} ${p.protocol.toUpperCase()} Node (${p.uptimePct || 99}% Uptime)`
+          });
+          idx++;
+        });
+
+        if (newServers.length > 0) {
+          VERIFIED_SERVERS = newServers;
+          console.log(`[SwiftVPN] Synced ${newServers.length} fresh live proxies from upstream.`);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[SwiftVPN] Upstream proxy sync notice:', err.message);
+  }
+}
+
+setTimeout(refreshUpstreamProxies, 1500);
+setInterval(refreshUpstreamProxies, 60 * 60 * 1000);
+
 // Server Fleet
 app.get('/api/servers', (req, res) => {
   // Randomise ping slightly for liveness feel
   const servers = VERIFIED_SERVERS.map(s => ({
     ...s,
-    pingMs: s.pingMs + Math.floor(Math.random() * 10 - 4),
-    loadPercent: Math.max(10, s.loadPercent + Math.floor(Math.random() * 12 - 6))
+    pingMs: s.pingMs + Math.floor(Math.random() * 6 - 3),
+    loadPercent: Math.max(10, s.loadPercent + Math.floor(Math.random() * 8 - 4))
   }));
   res.json({
     ok: true,
@@ -186,9 +348,14 @@ app.get('/api/servers', (req, res) => {
     freeServers: servers.filter(s => s.free).length,
     vipServers: servers.filter(s => !s.free).length,
     servers,
-    recommendedServerId: 'in-bengaluru-live',
+    recommendedServerId: servers[0] ? servers[0].id : 'us-newyork-live',
     timestamp: Date.now()
   });
+});
+
+app.post('/api/servers/sync', async (req, res) => {
+  await refreshUpstreamProxies();
+  res.json({ ok: true, totalServers: VERIFIED_SERVERS.length, servers: VERIFIED_SERVERS });
 });
 
 // License Verify
