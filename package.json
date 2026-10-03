@@ -1,25 +1,20 @@
 {
   "name": "swiftvpn-backend",
-  "version": "2.0.0",
-  "description": "Production Render Backend for SwiftVPN Extension - Proxy Tunnel Gateway, Server Fleet & License Engine",
+  "version": "3.0.0",
+  "description": "Production Backend for SwiftVPN Extension – Proxy Gateway, License Engine & Razorpay Payment Integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
-  "keywords": [
-    "vpn",
-    "proxy",
-    "swiftvpn",
-    "render",
-    "express"
-  ],
+  "keywords": ["vpn", "proxy", "swiftvpn", "render", "express", "razorpay"],
   "author": "SwiftVPN",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "razorpay": "^2.9.5"
   },
   "engines": {
     "node": ">=18.0.0"
