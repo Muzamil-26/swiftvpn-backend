@@ -1,12 +1,30 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const net = require('net');
 const crypto = require('crypto');
 
+
+// ── Razorpay (loaded lazily so server starts even without key) ──
+let Razorpay = null;
+try { Razorpay = require('razorpay'); } catch(e) { console.warn('[SwiftVPN] razorpay npm package not installed. Payment routes disabled.'); }
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'swiftvpn-admin-secret-2026';
+
+// ── Razorpay config (set in Render env vars for production) ──
+const RAZORPAY_KEY_ID     = process.env.RAZORPAY_KEY_ID     || '';
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
+
+let rzp = null;
+if (Razorpay && RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+  rzp = new Razorpay({ key_id: RAZORPAY_KEY_ID, key_secret: RAZORPAY_KEY_SECRET });
+  console.log('[SwiftVPN] ✅ Razorpay SDK initialized');
+} else {
+  console.warn('[SwiftVPN] ⚠️  Razorpay keys not set. Set RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET env vars on Render to enable payments.');
+}
 
 const telemetry = {
   startedAt: Date.now(),
@@ -401,25 +419,148 @@ app.post('/api/license/generate', (req, res) => {
   res.json({ ok: true, license: { key, ...licenseData } });
 });
 
-// Checkout
-app.post('/api/checkout/create-order', (req, res) => {
-  const { planType = 'monthly', customerEmail = 'user@example.com' } = req.body || {};
-  const plans = {
-    monthly: { amount: 14900, currency: 'INR', name: 'SwiftVPN VIP Monthly' },
-    yearly: { amount: 99900, currency: 'INR', name: 'SwiftVPN VIP Yearly' },
-    lifetime: { amount: 199900, currency: 'INR', name: 'SwiftVPN VIP Lifetime' }
-  };
-  const selected = plans[planType] || plans.monthly;
-  const orderId = 'order_' + crypto.randomBytes(8).toString('hex');
-  const provisionalKey = `SWIFT-VIP-${crypto.randomBytes(4).toString('hex').toUpperCase()}-AUTO`;
+// ─────────────────────────────────────────────────────────────
+// PAYMENT: Create Razorpay Order
+// POST /api/checkout/create-order
+// Body: { planType: 'monthly'|'yearly'|'lifetime', customerEmail }
+// ─────────────────────────────────────────────────────────────
+app.post('/api/checkout/create-order', async (req, res) => {
+  const { planType = 'monthly', customerEmail = '' } = req.body || {};
 
+  const plans = {
+    monthly:  { amount: 14900,  currency: 'INR', name: 'SwiftVPN VIP Monthly',  durationDays: 30  },
+    yearly:   { amount: 99900,  currency: 'INR', name: 'SwiftVPN VIP Yearly',   durationDays: 365 },
+    lifetime: { amount: 199900, currency: 'INR', name: 'SwiftVPN VIP Lifetime', durationDays: 36500 }
+  };
+  const plan = plans[planType] || plans.monthly;
+
+  // If Razorpay is configured, create a real order
+  if (rzp) {
+    try {
+      const order = await rzp.orders.create({
+        amount:   plan.amount,
+        currency: plan.currency,
+        receipt:  'swift_' + crypto.randomBytes(6).toString('hex'),
+        notes:    { planType, customerEmail, service: 'SwiftVPN' }
+      });
+      return res.json({
+        ok: true,
+        orderId:    order.id,
+        amount:     plan.amount,
+        currency:   plan.currency,
+        planName:   plan.name,
+        planType,
+        razorpayKeyId: RAZORPAY_KEY_ID,
+        // No license key yet — generated AFTER payment verified via webhook
+      });
+    } catch (err) {
+      console.error('[SwiftVPN] Razorpay order error:', err);
+      return res.status(500).json({ ok: false, error: 'Payment gateway error: ' + err.message });
+    }
+  }
+
+  // Razorpay not configured — return a provisional key for testing/demo
+  const provisionalKey = `SWIFT-VIP-${crypto.randomBytes(4).toString('hex').toUpperCase()}-DEMO`;
+  const expiresDate = new Date();
+  expiresDate.setDate(expiresDate.getDate() + plan.durationDays);
   LICENSE_STORE.set(provisionalKey, {
-    plan: 'premium', planLabel: selected.name, createdAt: Date.now(),
-    expiresAt: '2029-12-31T23:59:59Z', maxDevices: 5, customerEmail,
+    plan: 'premium', planLabel: plan.name, createdAt: Date.now(),
+    expiresAt: expiresDate.toISOString(), maxDevices: 5, customerEmail,
     features: ['all_servers', 'turbo_speed', 'adblock_shield', 'webrtc_guard']
   });
+  res.json({
+    ok: true,
+    orderId:      'demo_' + crypto.randomBytes(8).toString('hex'),
+    amount:       plan.amount,
+    currency:     plan.currency,
+    planName:     plan.name,
+    planType,
+    razorpayKeyId: null,  // null = demo mode, show key directly
+    provisionalKey,       // returned ONLY in demo mode
+    demoMode: true
+  });
+});
 
-  res.json({ ok: true, orderId, amount: selected.amount, currency: selected.currency, planName: selected.name, provisionalKey });
+// ─────────────────────────────────────────────────────────────
+// PAYMENT: Verify Razorpay Payment Signature + Issue License Key
+// POST /api/checkout/verify-payment
+// Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, planType, customerEmail }
+// ─────────────────────────────────────────────────────────────
+app.post('/api/checkout/verify-payment', (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planType = 'monthly', customerEmail = '' } = req.body || {};
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ ok: false, error: 'Missing payment verification fields.' });
+  }
+
+  // Verify HMAC-SHA256 signature
+  const expectedSig = crypto
+    .createHmac('sha256', RAZORPAY_KEY_SECRET)
+    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    .digest('hex');
+
+  if (expectedSig !== razorpay_signature) {
+    console.warn('[SwiftVPN] ❌ Payment signature mismatch!', { razorpay_order_id });
+    return res.status(400).json({ ok: false, error: 'Payment verification failed. Signature mismatch.' });
+  }
+
+  // Signature valid — generate and store permanent VIP license key
+  const plans = {
+    monthly:  { name: 'SwiftVPN VIP Monthly',  durationDays: 30   },
+    yearly:   { name: 'SwiftVPN VIP Yearly',   durationDays: 365  },
+    lifetime: { name: 'SwiftVPN VIP Lifetime', durationDays: 36500}
+  };
+  const plan = plans[planType] || plans.monthly;
+  const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
+  const licenseKey = `SWIFT-VIP-${randomPart}-${Date.now().toString(36).toUpperCase()}`;
+  const expiresDate = new Date();
+  expiresDate.setDate(expiresDate.getDate() + plan.durationDays);
+
+  LICENSE_STORE.set(licenseKey, {
+    plan: 'premium', planLabel: plan.name, createdAt: Date.now(),
+    expiresAt: expiresDate.toISOString(), maxDevices: 5,
+    customerEmail, paymentId: razorpay_payment_id, orderId: razorpay_order_id,
+    features: ['all_servers', 'turbo_speed', 'adblock_shield', 'webrtc_guard', 'unlimited_data']
+  });
+
+  console.log(`[SwiftVPN] ✅ Payment verified. License issued: ${licenseKey} for ${customerEmail}`);
+
+  res.json({
+    ok: true,
+    licenseKey,
+    planName: plan.name,
+    expiresAt: expiresDate.toISOString(),
+    message: 'Payment verified! Your VIP license is now active.'
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// PAYMENT: Razorpay Webhook (server-to-server confirmation)
+// POST /api/checkout/webhook
+// ─────────────────────────────────────────────────────────────
+app.post('/api/checkout/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+  if (!webhookSecret) return res.status(200).json({ received: true }); // Skip if not configured
+
+  const sig = req.headers['x-razorpay-signature'];
+  const expectedSig = crypto.createHmac('sha256', webhookSecret).update(req.body).digest('hex');
+
+  if (sig !== expectedSig) {
+    console.warn('[SwiftVPN] Webhook signature invalid');
+    return res.status(400).json({ error: 'Invalid webhook signature' });
+  }
+
+  let event;
+  try { event = JSON.parse(req.body.toString()); } catch (e) { return res.status(400).json({ error: 'Invalid JSON' }); }
+
+  if (event.event === 'payment.captured') {
+    const payment = event.payload && event.payload.payment && event.payload.payment.entity;
+    if (payment) {
+      console.log(`[SwiftVPN] Webhook: payment.captured ${payment.id} INR ${payment.amount / 100}`);
+      // Could look up order → issue key here for extra reliability
+    }
+  }
+  res.status(200).json({ received: true });
 });
 
 // Dashboard
